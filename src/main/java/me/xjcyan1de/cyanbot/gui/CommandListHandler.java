@@ -19,6 +19,7 @@ public class CommandListHandler {
         new CommandChat().register(listModel);
         new CommandWalk().register(listModel);
         new CommandSpin().register(listModel);
+        new CommandHeadShaking().register(listModel);
         new CommandSelectSlot().register(listModel);
         new CommandUseItem().register(listModel);
         new CommandInventoryClick().register(listModel);

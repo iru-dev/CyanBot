@@ -121,6 +121,26 @@ public class CommandEvents implements Listener {
                 }
                 break;
             }
+            case "гиги": {
+                bot.sendMessage("За шаги");
+                break;
+            }
+            case "посчитай": {
+                double first = args[0].equals("pi") ? Math.PI : Double.parseDouble(args[0]);
+                String operation = args[1];
+                double second = args[2].equals("pi") ? Math.PI : Double.parseDouble(args[2]);
+                if (operation.equals("+")) bot.sendMessage(String.valueOf(first + second));
+                if (operation.equals("-")) bot.sendMessage(String.valueOf(first - second));
+                if (operation.equals("*")) bot.sendMessage(String.valueOf(first * second));
+                if (operation.equals("/")) {
+                    if (second == 0) {
+                        bot.sendMessage("я тебе щас мозги посчитаю, умник тут нашёлся делить на дырку собрался, нуваще ты даешь");
+                    } else {
+                        bot.sendMessage(String.valueOf(first / second));
+                    }
+                }
+                break;
+            }
             default:
                 return;
         }

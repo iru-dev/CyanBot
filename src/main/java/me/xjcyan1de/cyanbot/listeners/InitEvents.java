@@ -6,9 +6,10 @@ import me.xjcyan1de.cyanbot.Bot;
 import me.xjcyan1de.cyanbot.Server;
 import me.xjcyan1de.cyanbot.config.Config;
 import me.xjcyan1de.cyanbot.events.PlayerChatEvent;
-import me.xjcyan1de.cyanbot.listeners.event.*;
-import me.xjcyan1de.cyanbot.utils.schedule.Schedule;
+import me.xjcyan1de.cyanbot.listeners.event.EventHandler;
+import me.xjcyan1de.cyanbot.listeners.event.Listener;
 import me.xjcyan1de.cyanbot.utils.StringUtilsMy;
+import me.xjcyan1de.cyanbot.utils.schedule.Schedule;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
@@ -59,8 +60,6 @@ public class InitEvents implements Listener {
     public void on(ServerChatPacket event) {
         final String fullTextLower = event.getMessage().getFullText().toLowerCase();
 
-        // если мы еще не выявиил все паттерны
-        // если это наше тестовое сообщение и в нем есть ник бота
         if (bot.getServer().getChatFormat().size() < testChatResponce.size()) {
             for (String responce : testChatResponce) {
                 if (fullTextLower.contains(responce)
@@ -76,7 +75,7 @@ public class InitEvents implements Listener {
 
     @EventHandler
     public void onChat(ServerChatPacket packet) {
-        final String fullText = packet.getMessage().getFullText();
+        final String fullText = packet.getMessage().getFullText().toLowerCase();
         final Server.ChatMessageData messageData = bot.getServer().parseChatMessage(fullText);
         if (messageData != null) {
             //сообщения бота не обрабатываем
@@ -118,6 +117,15 @@ public class InitEvents implements Listener {
                     ? StringUtilsMy.substringAfterLastIgnoreCase(chatMessage, betweenSenderAndMessage)
                     : StringUtilsMy.substringBetweenIrnoreCase(chatMessage, betweenSenderAndMessage, afterMessage);
             return sender == null || message == null ? null : new Server.ChatMessageData(sender, message);
+        }
+
+        @Override
+        public String toString() {
+            return "PatternChatBetween{" +
+                    "beforeSender='" + beforeSender + '\'' +
+                    ", betweenSenderAndMessage='" + betweenSenderAndMessage + '\'' +
+                    ", afterMessage='" + afterMessage + '\'' +
+                    '}';
         }
     }
 }

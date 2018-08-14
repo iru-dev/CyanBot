@@ -9,8 +9,14 @@ import me.xjcyan1de.cyanbot.utils.schedule.Schedule;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class MainFrame extends JFrame {
     private JPanel contentPane;
@@ -39,8 +45,12 @@ public class MainFrame extends JFrame {
     private JTextField clickField;
     private JComboBox clickComboBox;
     private JButton clickButton;
+    private JComboBox nickTypeSelector;
     private JScrollBar botListScrollPane;
+
     private Config config;
+    private List<String> alts;
+    private Iterator<String> altsIterator;
     private BotManager botManager;
     private Logger logger;
 
@@ -50,6 +60,11 @@ public class MainFrame extends JFrame {
         this.config = config;
         this.botManager = botManager;
         this.logger = logger;
+        try {
+            alts = Files.lines(Paths.get("alts.txt"), StandardCharsets.UTF_8).collect(Collectors.toList());
+        } catch (IOException e) {
+            alts = new ArrayList<>();
+        }
 
         this.setTitle("CyanBot");
         setContentPane(contentPane);
@@ -71,15 +86,32 @@ public class MainFrame extends JFrame {
     }
 
     public void updateRelogin() {
-        if (autoJoin.isSelected()) {
+        final int nickSelector = nickTypeSelector.getSelectedIndex();
+        if (nickSelector == 0) {
+            if (autoJoin.isSelected()) {
+                taskRelogin = Schedule.timer(() -> {
+                    final Bot bot = botManager.getBot(name.getText());
+                    if (bot == null) {
+                        this.onJoin(name.getText(), null);
+                    }
+                }, 0, Integer.parseInt(deplayRelogin.getText()));
+            } else if (taskRelogin != null) {
+                taskRelogin.cancel();
+            }
+        } else if (nickSelector == 1) {
+            if (altsIterator == null) {
+                altsIterator = alts.iterator();
+            }
             taskRelogin = Schedule.timer(() -> {
-                final Bot bot = botManager.getBot(name.getText());
-                if (bot == null) {
-                    this.onJoin();
+                if (altsIterator.hasNext()) {
+                    final String[] alt = altsIterator.next().split(":");
+                    name.setText(alt[0]);
+                    final Bot bot = botManager.getBot(alt[0]);
+                    if (bot == null) {
+                        this.onJoin(name.getText(), alt.length == 2 ? alt[1] : null);
+                    }
                 }
             }, 0, Integer.parseInt(deplayRelogin.getText()));
-        } else if (taskRelogin != null) {
-            taskRelogin.cancel();
         }
     }
 
@@ -120,7 +152,7 @@ public class MainFrame extends JFrame {
             leave.setEnabled(connected);
             join.setEnabled(!connected);
             getKey.setEnabled(connected);
-        }, 0, 500);
+        }, 500, 500);
     }
 
     public JCheckBox getAutoJoin() {
@@ -146,7 +178,15 @@ public class MainFrame extends JFrame {
 
     @SuppressWarnings("unchecked")
     private void registerListeners() {
-        join.addActionListener(e -> this.onJoin());
+        join.addActionListener(e -> {
+            final int selectorIndex = nickTypeSelector.getSelectedIndex();
+            if (selectorIndex == 0) {
+                onJoin(name.getText(), null);
+            } else if (selectorIndex == 1) {
+                altsIterator = alts.iterator();
+                updateRelogin();
+            }
+        });
 
         getKey.addActionListener(e -> {
             final Bot bot = botManager.getBot(name.getText());
@@ -193,6 +233,15 @@ public class MainFrame extends JFrame {
                 CommandListHandler.createPanel(commandPanel, index);
             }
         });
+
+        nickTypeSelector.addActionListener(e -> {
+            final int index = nickTypeSelector.getSelectedIndex();
+            if (index == 0) {
+                name.setEnabled(true);
+            } else if (index == 1) {
+                name.setEnabled(false);
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")
@@ -203,9 +252,9 @@ public class MainFrame extends JFrame {
     }
 
     @SuppressWarnings("unchecked")
-    private void onJoin() {
+    private void onJoin(String username, String password) {
         String ipText = ip.getText();
-        botManager.connectBot(ipText, name.getText(),
+        botManager.connectBot(ipText, username, password,
                 Arrays.asList(joinCommands.getText().split("\n")),
                 this);
     }
@@ -253,7 +302,7 @@ public class MainFrame extends JFrame {
         panel1.setLayout(new GridLayoutManager(4, 1, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("Основное", panel1);
         final JPanel panel2 = new JPanel();
-        panel2.setLayout(new GridLayoutManager(6, 1, new Insets(0, 0, 0, 0), -1, -1));
+        panel2.setLayout(new GridLayoutManager(7, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel2, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         panel2.setBorder(BorderFactory.createTitledBorder("Данные"));
         name = new JTextField();
@@ -269,13 +318,13 @@ public class MainFrame extends JFrame {
         status = new JTextField();
         status.setEditable(false);
         status.setText("Статус");
-        panel2.add(status, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        panel2.add(status, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         join = new JButton();
         join.setText("Подключиться");
         panel2.add(join, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel3 = new JPanel();
         panel3.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
-        panel2.add(panel3, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        panel2.add(panel3, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         autoJoin = new JCheckBox();
         autoJoin.setText("Заходить автоматически");
         panel3.add(autoJoin, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -285,6 +334,12 @@ public class MainFrame extends JFrame {
         deplayRelogin = new JTextField();
         deplayRelogin.setText("2000");
         panel3.add(deplayRelogin, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        nickTypeSelector = new JComboBox();
+        final DefaultComboBoxModel defaultComboBoxModel1 = new DefaultComboBoxModel();
+        defaultComboBoxModel1.addElement("По нику");
+        defaultComboBoxModel1.addElement("По файлу alts.txt");
+        nickTypeSelector.setModel(defaultComboBoxModel1);
+        panel2.add(nickTypeSelector, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel4 = new JPanel();
         panel4.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel4, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -338,17 +393,17 @@ public class MainFrame extends JFrame {
         clickButton.setText("КЛИК!");
         clickPanel.add(clickButton, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         clickComboBox = new JComboBox();
-        final DefaultComboBoxModel defaultComboBoxModel1 = new DefaultComboBoxModel();
-        defaultComboBoxModel1.addElement("Левый клик");
-        defaultComboBoxModel1.addElement("Правый клик");
-        defaultComboBoxModel1.addElement("Shift + Левый клик");
-        defaultComboBoxModel1.addElement("Shift + Правый клик");
-        defaultComboBoxModel1.addElement("Клавиша Q (выкинуть предмет)");
-        defaultComboBoxModel1.addElement("Cntr + Q (выкинуть стак)");
-        defaultComboBoxModel1.addElement("Левый клик за инвентарём");
-        defaultComboBoxModel1.addElement("Правый клик за инвентарём");
-        defaultComboBoxModel1.addElement("Двойной клик");
-        clickComboBox.setModel(defaultComboBoxModel1);
+        final DefaultComboBoxModel defaultComboBoxModel2 = new DefaultComboBoxModel();
+        defaultComboBoxModel2.addElement("Левый клик");
+        defaultComboBoxModel2.addElement("Правый клик");
+        defaultComboBoxModel2.addElement("Shift + Левый клик");
+        defaultComboBoxModel2.addElement("Shift + Правый клик");
+        defaultComboBoxModel2.addElement("Клавиша Q (выкинуть предмет)");
+        defaultComboBoxModel2.addElement("Cntr + Q (выкинуть стак)");
+        defaultComboBoxModel2.addElement("Левый клик за инвентарём");
+        defaultComboBoxModel2.addElement("Правый клик за инвентарём");
+        defaultComboBoxModel2.addElement("Двойной клик");
+        clickComboBox.setModel(defaultComboBoxModel2);
         clickPanel.add(clickComboBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         botListScorllPane = new JScrollPane();
         panel8.add(botListScorllPane, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));

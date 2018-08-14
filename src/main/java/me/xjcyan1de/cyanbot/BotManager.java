@@ -1,5 +1,6 @@
 package me.xjcyan1de.cyanbot;
 
+import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import me.xjcyan1de.cyanbot.config.Config;
 import me.xjcyan1de.cyanbot.gui.MainFrame;
 import me.xjcyan1de.cyanbot.logger.BotLogger;
@@ -42,13 +43,14 @@ public class BotManager {
         return config;
     }
 
-    public void connectBot(String ipText, String name, List<String> replaceCommand, MainFrame mainFrame) {
+    public void connectBot(String ipText, String username, String password, List<String> replaceCommand, MainFrame mainFrame) {
         service.submit(() -> {
-            if (!botMap.containsKey(name)) {
+            if (!botMap.containsKey(username)) {
                 try {
                     final String[] ipPort = ipText.split(":");
                     Server server = serverMap.computeIfAbsent(ipText, key -> new Server(logger, ipText, this));
-                    final Bot bot = new Bot(this, mainFrame, new BotLogger(name, logger), name,
+                    final MinecraftProtocol protocol = password != null ? new MinecraftProtocol(username, password) : new MinecraftProtocol(username);
+                    final Bot bot = new Bot(this, mainFrame, new BotLogger(protocol.getProfile().getName(), logger), protocol,
                             ipPort[0], ipPort.length > 1 ? Integer.parseInt(ipPort[1]) : 25565,
                             server);
                     bot.setJoinCommands(replaceCommand);

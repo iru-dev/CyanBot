@@ -9,8 +9,8 @@ import me.xjcyan1de.cyanbot.commands.CommandTest;
 import me.xjcyan1de.cyanbot.commands.CommandWhere;
 import me.xjcyan1de.cyanbot.commands.CommandYou;
 import me.xjcyan1de.cyanbot.commands.command.CommandSystem;
-import me.xjcyan1de.cyanbot.events.GenerateAccessKeyEvent;
 import me.xjcyan1de.cyanbot.events.BotChatEvent;
+import me.xjcyan1de.cyanbot.events.GenerateAccessKeyEvent;
 import me.xjcyan1de.cyanbot.gui.MainFrame;
 import me.xjcyan1de.cyanbot.handlers.*;
 import me.xjcyan1de.cyanbot.listeners.*;
@@ -58,11 +58,11 @@ public class Bot {
     private List<String> accessPlayers = new ArrayList<>(1);
     private boolean close = false;
 
-    public Bot(BotManager botManager, MainFrame mainFrame, Logger logger, String username, String host, int port, Server server) {
+    public Bot(BotManager botManager, MainFrame mainFrame, Logger logger, MinecraftProtocol protocol, String host, int port, Server server) {
         this.botManager = botManager;
         this.logger = logger;
-        this.protocol = new MinecraftProtocol(username);
-        this.username = username;
+        this.protocol = protocol;
+        this.username = protocol.getProfile().getName();
         this.server = server;
         this.client = new Client(host, port, protocol, new TcpSessionFactory(Proxy.NO_PROXY));
         this.eventSystem = new EventSystem(logger);

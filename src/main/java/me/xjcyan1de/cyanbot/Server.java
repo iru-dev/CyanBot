@@ -33,6 +33,9 @@ public class Server {
 
     public ChatMessageData parseChatMessage(String fullText) {
         for (PatternChat patternChat : chatFormat) {
+            System.out.println(patternChat.toString());
+
+
             final ChatMessageData messageData = patternChat.getMessageData(fullText);
             if (messageData != null) {
                 return messageData;
