@@ -1,6 +1,0 @@
-**/dependency-reduced-pom.xml
-.idea/inspectionProfiles/
-.idea/dictionaries/
-.idea/workspace.xml
-out/**
-*.class
